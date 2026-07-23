@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Starlink — URL Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void:      #05060f;
+    --deep:      #0a0b1e;
+    --panel:     rgba(20, 22, 48, 0.55);
+    --panel-brd: rgba(140, 150, 255, 0.14);
+    --star:      #eef1ff;
+    --ink:       #e8eaff;
+    --ink-soft:  #9aa0d0;
+    --ink-faint: #5c6199;
+    --accent:    #8b8dff;
+    --accent-2:  #52e5ff;
+    --nebula-a:  #6d3bff;
+    --nebula-b:  #ff4fa3;
+    --nebula-c:  #1f7bff;
+    --good:      #4fffc4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--void);
+    color: var(--ink);
+    min-height: 100%;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Cosmic backdrop ---------- */
+  #space {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(109,59,255,0.28), transparent 60%),
+      radial-gradient(1000px 700px at 100% 10%, rgba(31,123,255,0.22), transparent 55%),
+      radial-gradient(900px 900px at 60% 120%, rgba(255,79,163,0.16), transparent 55%),
+      linear-gradient(180deg, #05060f 0%, #080a1c 45%, #05060f 100%);
+  }
+  #stars { position: fixed; inset: 0; z-index: 1; display: block; }
+
+  /* soft floating nebula wisp */
+  .wisp {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.5;
+    z-index: 1;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    animation: drift 26s ease-in-out infinite;
+  }
+  .wisp.a { width: 42vw; height: 42vw; left: -8vw;  top: -6vw;  background: radial-gradient(circle, var(--nebula-a), transparent 70%); }
+  .wisp.b { width: 36vw; height: 36vw; right: -6vw; top: 6vw;   background: radial-gradient(circle, var(--nebula-c), transparent 70%); animation-delay: -8s; }
+  .wisp.c { width: 40vw; height: 40vw; left: 30vw;  bottom: -18vw; background: radial-gradient(circle, var(--nebula-b), transparent 70%); animation-delay: -15s; }
+  @keyframes drift {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(3vw,-3vw) scale(1.08); }
+  }
+
+  /* ---------- Layout ---------- */
+  .stage {
+    position: relative;
+    z-index: 2;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: clamp(40px, 8vh, 90px) 22px 80px;
+  }
+
+  header { text-align: center; margin-bottom: 42px; animation: rise 0.9s cubic-bezier(.2,.8,.2,1) both; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.42em; text-transform: uppercase;
+    color: var(--accent); font-weight: 500; margin-bottom: 16px;
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: ""; width: 34px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent));
+  }
+  .eyebrow::after { background: linear-gradient(90deg, var(--accent), transparent); }
+
+  h1 {
+    font-weight: 700;
+    font-size: clamp(38px, 7vw, 66px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    background: linear-gradient(180deg, #ffffff 0%, #b8bcff 70%, #7d82e0 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 60px rgba(139,141,255,0.25);
+  }
+  .sub { margin-top: 16px; color: var(--ink-soft); font-weight: 300; font-size: clamp(15px,2.2vw,17px); max-width: 520px; margin-inline: auto; }
+
+  /* ---------- Card ---------- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-brd);
+    border-radius: 22px;
+    padding: 30px;
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow:
+      0 30px 80px -30px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    animation: rise 0.9s cubic-bezier(.2,.8,.2,1) 0.12s both;
+  }
+
+  .field { margin-bottom: 24px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px;
+  }
+  label .num {
+    display: grid; place-items: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    color: var(--void); background: var(--accent); font-weight: 700;
+    letter-spacing: 0;
+  }
+  label .hint { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 300; color: var(--ink-faint); font-size: 12px; }
+
+  input[type=text], textarea {
+    width: 100%;
+    background: rgba(4,5,15,0.6);
+    border: 1px solid rgba(140,150,255,0.16);
+    border-radius: 14px;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    padding: 14px 16px;
+    resize: vertical;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(4,5,15,0.85);
+    box-shadow: 0 0 0 4px rgba(139,141,255,0.14);
+  }
+  textarea#emails { min-height: 128px; }
+
+  .row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+  .count { font-size: 12.5px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; }
+  .count b { color: var(--accent-2); font-weight: 500; }
+
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--ink-soft); cursor: pointer; user-select: none;
+  }
+  .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+  .sw { width: 34px; height: 19px; border-radius: 20px; background: rgba(140,150,255,0.2); position: relative; transition: background .2s; flex: none; }
+  .sw::after { content:""; position:absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%; background: var(--ink); transition: transform .2s; }
+  .toggle input:checked + .sw { background: var(--accent); }
+  .toggle input:checked + .sw::after { transform: translateX(15px); }
+
+  /* ---------- Results ---------- */
+  .results { margin-top: 30px; animation: rise 0.7s ease both 0.2s; }
+  .results-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .results-head h2 {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 10px var(--good); }
+
+  .btn {
+    font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--panel-brd); background: rgba(139,141,255,0.1);
+    color: var(--ink); padding: 9px 15px; border-radius: 11px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background .18s, border-color .18s, transform .1s;
+  }
+  .btn:hover { background: rgba(139,141,255,0.22); border-color: var(--accent); }
+  .btn:active { transform: scale(0.97); }
+  .btn svg { width: 14px; height: 14px; }
+
+  .link-list { display: flex; flex-direction: column; gap: 10px; }
+  .link {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(4,5,15,0.5);
+    border: 1px solid rgba(140,150,255,0.1);
+    border-radius: 13px; padding: 13px 14px;
+    animation: rise .5s ease both;
+  }
+  .link:hover { border-color: rgba(140,150,255,0.28); }
+  .link .who { flex: none; width: 150px; overflow: hidden; }
+  .link .who .name { font-size: 13px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .link .who .mail { font-size: 11px; color: var(--ink-faint); font-family:'JetBrains Mono',monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .link .url {
+    flex: 1; min-width: 0;
+    font-family:'JetBrains Mono',monospace; font-size: 12px; color: var(--accent-2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn {
+    flex: none; width: 34px; height: 34px; border-radius: 9px;
+    border: 1px solid var(--panel-brd); background: rgba(139,141,255,0.08);
+    color: var(--ink-soft); cursor: pointer; display: grid; place-items: center;
+    transition: background .18s, color .18s, transform .1s;
+  }
+  .icon-btn:hover { background: rgba(139,141,255,0.2); color: var(--ink); }
+  .icon-btn:active { transform: scale(0.9); }
+  .icon-btn.copied { color: var(--good); border-color: rgba(79,255,196,0.4); background: rgba(79,255,196,0.1); }
+  .icon-btn svg { width: 15px; height: 15px; }
+
+  .empty {
+    text-align: center; color: var(--ink-faint); font-size: 13.5px; font-weight: 300;
+    padding: 34px 20px; border: 1px dashed rgba(140,150,255,0.16); border-radius: 14px;
+  }
+
+  .btn-primary {
+    margin-top: 22px; width: 100%;
+    font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.02em;
+    color: #08091a; cursor: pointer; border: none; border-radius: 13px; padding: 14px 18px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    box-shadow: 0 10px 30px -8px rgba(82,229,255,0.5);
+    transition: transform .1s, box-shadow .2s, filter .2s;
+  }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 14px 38px -8px rgba(82,229,255,0.65); }
+  .btn-primary:active { transform: scale(0.985); }
+  .btn-primary svg { width: 16px; height: 16px; }
+  .kbd-hint { margin-top: 11px; text-align: center; font-size: 11.5px; color: var(--ink-faint); font-weight: 300; }
+  .kbd-hint kbd {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    background: rgba(140,150,255,0.12); border: 1px solid rgba(140,150,255,0.2);
+    border-radius: 5px; padding: 1px 6px; color: var(--ink-soft);
+  }
+
+  .actions { display: flex; gap: 8px; flex: none; }
+  .icon-btn.danger:hover { color: #ff8a9c; border-color: rgba(255,138,156,0.4); background: rgba(255,138,156,0.12); }
+  .time { font-size: 10.5px; color: var(--ink-faint); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+
+  .section-gap { margin-top: 36px; }
+
+  footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--ink-faint); font-weight: 300; }
+  footer b { color: var(--ink-soft); font-weight: 400; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 560px) {
+    .card { padding: 22px; }
+    .link { flex-wrap: wrap; }
+    .link .who { width: 100%; }
+    .link .url { width: 100%; flex-basis: 100%; }
+  }
+
+  /* toast */
+  #toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: rgba(10,12,30,0.9); border: 1px solid var(--accent);
+    color: var(--ink); padding: 11px 20px; border-radius: 12px; font-size: 13px;
+    z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    backdrop-filter: blur(10px);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div id="space"></div>
+  <canvas id="stars"></canvas>
+  <div class="wisp a"></div>
+  <div class="wisp b"></div>
+  <div class="wisp c"></div>
+
+  <main class="stage">
+    <header>
+      <div class="eyebrow">Link Constellation</div>
+      <h1>URL Generator</h1>
+      <p class="sub">Drop in a base link and a list of emails. Get a personalized, shareable URL for every recipient — instantly.</p>
+    </header>
+
+    <section class="card">
+      <div class="field">
+        <label for="base"><span class="num">1</span> Base URL template</label>
+        <input id="base" type="text" spellcheck="false"
+          value="https://hc4ll5gtr2e.typeform.com/to/vt4Atzbj#first_name=xxxxx&email=xxxxx" />
+      </div>
+
+      <div class="field">
+        <label for="emails"><span class="num">2</span> Recipients <span class="hint">one per line — "Name email@x.com" or just an email</span></label>
+        <textarea id="emails" spellcheck="false" placeholder="Ada ada@example.com&#10;Grace, grace.hopper@example.com&#10;alan@example.com"></textarea>
+        <div class="row">
+          <span class="count"><b id="cnt">0</b> recipients detected</span>
+          <label class="toggle" title="When a line has no name, derive first_name from the email">
+            <input type="checkbox" id="autoName" checked />
+            <span class="sw"></span> Auto-fill first name when only an email is given
+          </label>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="genBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+        Generate links
+      </button>
+      <div class="kbd-hint">Press <kbd>Enter</kbd> to generate · <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line</div>
+    </section>
+
+    <section class="results">
+      <div class="results-head">
+        <h2><span class="dot"></span> Generated Links</h2>
+        <button class="btn" id="copyAll">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy all
+        </button>
+      </div>
+      <div id="out" class="link-list"></div>
+    </section>
+
+    <section class="results section-gap">
+      <div class="results-head">
+        <h2><span class="dot" style="background:var(--accent);box-shadow:0 0 10px var(--accent)"></span> History <span id="histCount" class="count" style="text-transform:none;letter-spacing:0"></span></h2>
+        <button class="btn" id="clearHist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>
+          Clear all
+        </button>
+      </div>
+      <div id="hist" class="link-list"></div>
+    </section>
+
+    <footer>Runs entirely in your browser — nothing is uploaded, history is saved on this device. Built for <b>ClickPost</b>.</footer>
+  </main>
+
+  <div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (s) => document.querySelector(s);
+  const baseEl = $("#base");
+  const emailsEl = $("#emails");
+  const autoNameEl = $("#autoName");
+  const out = $("#out");
+  const cntEl = $("#cnt");
+  const toast = $("#toast");
+  const hist = $("#hist");
+  const histCount = $("#histCount");
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  // One recipient per line. A line may hold a name + email in either order
+  // ("Shyam sayhelloshyam@gmail.com", "Shyam, shyam@x.com", "shyam@x.com"),
+  // or several bare emails separated by commas/spaces.
+  function parseRecipients(text) {
+    const seen = new Set();
+    const out = [];
+    text.split(/\r?\n/).forEach((line) => {
+      const raw = line.trim();
+      if (!raw) return;
+      const tokens = raw.split(/[\s,;]+/).filter(Boolean);
+      const emails = tokens.filter((t) => EMAIL_RE.test(t));
+      const rest = tokens.filter((t) => !EMAIL_RE.test(t));
+      if (!emails.length) return;
+      if (emails.length === 1) {
+        pushRec(out, seen, rest.join(" ").trim(), emails[0]);
+      } else {
+        // multiple emails on one line -> each is its own recipient, name derived
+        emails.forEach((e) => pushRec(out, seen, "", e));
+      }
+    });
+    return out;
+  }
+  function pushRec(out, seen, name, email) {
+    const k = email.toLowerCase();
+    if (seen.has(k)) return;
+    seen.add(k);
+    out.push({ name, email });
+  }
+
+  // "shyam.j@clickpost.ai" -> "Shyam"
+  function firstNameFromEmail(email) {
+    let local = email.split("@")[0];
+    let token = local.split(/[._+\-]/)[0] || local;
+    token = token.replace(/[^a-zA-Z]/g, "");
+    if (!token) return "";
+    return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+  }
+
+  // Replace `key=<value>` (query or fragment) with the value verbatim.
+  // Only the matching placeholder is swapped — nothing else in the URL changes.
+  function setParam(url, key, value) {
+    const re = new RegExp("([?#&])(" + key + ")=[^&]*", "i");
+    if (re.test(url)) {
+      return url.replace(re, (m, sep, k) => sep + k + "=" + value);
+    }
+    return url;
+  }
+
+  // Explicit name wins (first word only, since the field is first_name);
+  // otherwise derive from the email if auto-fill is on.
+  function resolveName(rec) {
+    if (rec.name) return rec.name.split(/\s+/)[0];
+    if (autoNameEl.checked) return firstNameFromEmail(rec.email);
+    return "";
+  }
+
+  function buildUrl(base, rec) {
+    // Email goes in verbatim (no encoding). Only a space in a name is escaped,
+    // since a raw space would break the link.
+    let url = setParam(base, "email", rec.email);
+    const name = resolveName(rec);
+    if (name) url = setParam(url, "first_name", name.replace(/\s+/g, "%20"));
+    return url;
+  }
+
+  const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+  let currentLinks = [];
+
+  // Build one link row. opts.time -> show a timestamp; opts.onRemove -> show a remove button.
+  function makeRow(item, opts) {
+    opts = opts || {};
+    const row = document.createElement("div");
+    row.className = "link";
+
+    const who = document.createElement("div");
+    who.className = "who";
+    const nameEl = document.createElement("div");
+    nameEl.className = "name";
+    nameEl.textContent = item.name || "—";
+    const mailEl = document.createElement("div");
+    mailEl.className = "mail";
+    mailEl.textContent = item.email;
+    who.append(nameEl, mailEl);
+    if (opts.time) {
+      const t = document.createElement("div");
+      t.className = "time";
+      t.textContent = opts.time;
+      who.appendChild(t);
+    }
+
+    const url = document.createElement("div");
+    url.className = "url";
+    url.textContent = item.url;
+    url.title = item.url;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "icon-btn";
+    copyBtn.type = "button";
+    copyBtn.title = "Copy link";
+    copyBtn.innerHTML = ICON_COPY;
+    copyBtn.addEventListener("click", () => {
+      copy(item.url);
+      copyBtn.innerHTML = ICON_CHECK;
+      copyBtn.classList.add("copied");
+      setTimeout(() => { copyBtn.innerHTML = ICON_COPY; copyBtn.classList.remove("copied"); }, 1400);
+    });
+    actions.appendChild(copyBtn);
+
+    if (opts.onRemove) {
+      const rm = document.createElement("button");
+      rm.className = "icon-btn danger";
+      rm.type = "button";
+      rm.title = "Remove from history";
+      rm.innerHTML = ICON_X;
+      rm.addEventListener("click", opts.onRemove);
+      actions.appendChild(rm);
+    }
+
+    row.append(who, url, actions);
+    return row;
+  }
+
+  function updateCount() {
+    cntEl.textContent = parseRecipients(emailsEl.value).length;
+  }
+
+  // Build links from the current input — runs only when the user hits Enter / Generate.
+  function generate() {
+    const base = baseEl.value.trim();
+    const recs = parseRecipients(emailsEl.value);
+    updateCount();
+
+    if (!recs.length) {
+      currentLinks = [];
+      renderLatest();
+      showToast("Enter at least one email address");
+      return;
+    }
+
+    currentLinks = recs.map((r) => ({ email: r.email, name: resolveName(r), url: buildUrl(base, r) }));
+    renderLatest();
+    addToHistory(currentLinks);
+    renderHistory();
+    showToast("Generated " + currentLinks.length + " link" + (currentLinks.length > 1 ? "s" : ""));
+  }
+
+  function renderLatest() {
+    if (!currentLinks.length) {
+      out.innerHTML = '<div class="empty">Your personalized links will appear here after you hit Enter.</div>';
+      return;
+    }
+    out.innerHTML = "";
+    currentLinks.forEach((item, i) => {
+      const row = makeRow(item);
+      row.style.animationDelay = Math.min(i * 0.04, 0.4) + "s";
+      out.appendChild(row);
+    });
+  }
+
+  /* ---------- History (persisted in localStorage) ---------- */
+  const HKEY = "urlgen.history.v1";
+  let histItems = loadHistory();
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HKEY)) || []; } catch (e) { return []; }
+  }
+  function saveHistory() {
+    try { localStorage.setItem(HKEY, JSON.stringify(histItems)); } catch (e) {}
+  }
+  function addToHistory(links) {
+    const now = Date.now();
+    links.forEach((l) => {
+      const i = histItems.findIndex((h) => h.url === l.url);
+      if (i !== -1) histItems.splice(i, 1);       // de-dup: bump to the top
+      histItems.unshift({ name: l.name, email: l.email, url: l.url, ts: now });
+    });
+    if (histItems.length > 500) histItems.length = 500;
+    saveHistory();
+  }
+  function fmtTime(ts) {
+    try {
+      return new Date(ts).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch (e) { return ""; }
+  }
+  function renderHistory() {
+    histCount.textContent = histItems.length ? "(" + histItems.length + ")" : "";
+    if (!histItems.length) {
+      hist.innerHTML = '<div class="empty">Nothing yet — links you generate are saved here, even after you close the page.</div>';
+      return;
+    }
+    hist.innerHTML = "";
+    histItems.forEach((item, i) => {
+      const row = makeRow(item, {
+        time: fmtTime(item.ts),
+        onRemove: () => {
+          const idx = histItems.findIndex((h) => h.url === item.url && h.ts === item.ts);
+          if (idx !== -1) histItems.splice(idx, 1);
+          saveHistory();
+          renderHistory();
+        }
+      });
+      if (i < 12) row.style.animationDelay = Math.min(i * 0.03, 0.35) + "s";
+      hist.appendChild(row);
+    });
+  }
+
+  function copy(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+  function fallbackCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1900);
+  }
+
+  $("#copyAll").addEventListener("click", () => {
+    if (!currentLinks.length) { showToast("Generate some links first"); return; }
+    copy(currentLinks.map((l) => l.url).join("\n"));
+    showToast("Copied " + currentLinks.length + " link" + (currentLinks.length > 1 ? "s" : "") + " to clipboard");
+  });
+
+  $("#genBtn").addEventListener("click", generate);
+
+  $("#clearHist").addEventListener("click", () => {
+    if (!histItems.length) return;
+    histItems = [];
+    saveHistory();
+    renderHistory();
+    showToast("History cleared");
+  });
+
+  // Enter generates; Shift+Enter inserts a newline for multiple recipients.
+  emailsEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); }
+  });
+  baseEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); generate(); }
+  });
+
+  [baseEl, emailsEl].forEach((el) => el.addEventListener("input", updateCount));
+  autoNameEl.addEventListener("change", updateCount);
+
+  updateCount();
+  renderLatest();
+  renderHistory();
+
+  /* ---------- Starfield ---------- */
+  const canvas = $("#stars");
+  const ctx = canvas.getContext("2d");
+  let stars = [], w, h, dpr;
+
+  function seed() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = canvas.width = innerWidth * dpr;
+    h = canvas.height = innerHeight * dpr;
+    canvas.style.width = innerWidth + "px";
+    canvas.style.height = innerHeight + "px";
+    const count = Math.round((innerWidth * innerHeight) / 5200);
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: (Math.random() * 1.3 + 0.2) * dpr,
+      base: Math.random() * 0.5 + 0.3,
+      tw: Math.random() * 0.02 + 0.004,
+      ph: Math.random() * Math.PI * 2,
+      hue: Math.random() < 0.15 ? 190 : (Math.random() < 0.5 ? 240 : 40)
+    }));
+  }
+
+  let t = 0;
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    t += 1;
+    for (const s of stars) {
+      const a = s.base + Math.sin(t * s.tw + s.ph) * 0.35;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = "hsla(" + s.hue + ",90%,88%," + Math.max(0, a) + ")";
+      ctx.shadowBlur = 6 * dpr;
+      ctx.shadowColor = "hsla(" + s.hue + ",90%,80%,0.6)";
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    requestAnimationFrame(draw);
+  }
+
+  seed();
+  draw();
+  let rz;
+  addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(seed, 200); });
+})();
+</script>
+</body>
+</html>
