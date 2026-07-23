@@ -1,0 +1,3 @@
+# The tool's HTML must never be served statically (it would bypass auth).
+# The gated /api/index function serves it from api/_app.json instead.
+index.html
